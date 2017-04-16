@@ -9,6 +9,7 @@ import urllib.parse
 from collections import namedtuple
 
 import aiohttp  # Install with "pip install aiohttp".
+from pybloom import BloomFilter
 
 try:
     # Python 3.4.
@@ -61,6 +62,7 @@ class Crawler:
         self.max_tries = max_tries
         self.max_tasks = max_tasks
         self.q = Queue(loop=self.loop)
+        # self.seen_urls = BloomFilter(capacity=10000000, error_rate=0.001)
         self.seen_urls = set()
         self.done = []
         self.session = aiohttp.ClientSession(loop=self.loop)
