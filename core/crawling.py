@@ -228,6 +228,7 @@ class Crawler:
                 stat, links = yield from self.parse_links(response)
                 self.record_statistic(stat)
                 for link in utils.difference(links, self.seen_urls):
+
                     # for link in links.difference(self.seen_urls):
                     self.q.put_nowait((link, self.max_redirect))
                 # self.seen_urls.update(links)
