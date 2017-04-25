@@ -6,18 +6,13 @@ import logging
 import re
 import time
 import urllib.parse
+from asyncio import Queue
 from collections import namedtuple
 
 import aiohttp  # Install with "pip install aiohttp".
-from pybloom import BloomFilter
 
-try:
-    # Python 3.4.
-    from asyncio import JoinableQueue as Queue
-except ImportError:
-    # Python 3.5.
-    from asyncio import Queue
-
+import utils
+from pybloomfilter import BloomFilter
 
 LOGGER = logging.getLogger(__name__)
 
@@ -62,8 +57,7 @@ class Crawler:
         self.max_tries = max_tries
         self.max_tasks = max_tasks
         self.q = Queue(loop=self.loop)
-        # self.seen_urls = BloomFilter(capacity=10000000, error_rate=0.001)
-        self.seen_urls = set()
+        self.seen_urls = BloomFilter(10000000, 0.01)
         self.done = []
         self.session = aiohttp.ClientSession(loop=self.loop)
         self.root_domains = set()
@@ -169,7 +163,7 @@ class Crawler:
             content_type=content_type,
             encoding=encoding,
             num_urls=len(links),
-            num_new_urls=len(links - self.seen_urls))
+            num_new_urls=len(links) - len(self.seen_urls))
 
         return stat, links
 
@@ -233,8 +227,10 @@ class Crawler:
             else:
                 stat, links = yield from self.parse_links(response)
                 self.record_statistic(stat)
-                for link in links.difference(self.seen_urls):
+                for link in utils.difference(links, self.seen_urls):
+                    # for link in links.difference(self.seen_urls):
                     self.q.put_nowait((link, self.max_redirect))
+                # self.seen_urls.update(links)
                 self.seen_urls.update(links)
         finally:
             yield from response.release()
