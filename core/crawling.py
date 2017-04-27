@@ -10,7 +10,6 @@ from asyncio import Queue
 from collections import namedtuple
 
 import aiohttp  # Install with "pip install aiohttp".
-
 import utils
 from pybloomfilter import BloomFilter
 
@@ -60,60 +59,12 @@ class Crawler:
         self.seen_urls = BloomFilter(10000000, 0.01)
         self.done = []
         self.session = aiohttp.ClientSession(loop=self.loop)
-        self.root_domains = set()
-        for root in roots:
-            parts = urllib.parse.urlparse(root)
-            host, port = urllib.parse.splitport(parts.netloc)
-            if not host:
-                continue
-            if re.match(r'\A[\d\.]*\Z', host):
-                self.root_domains.add(host)
-            else:
-                host = host.lower()
-                if self.strict:
-                    self.root_domains.add(host)
-                else:
-                    self.root_domains.add(lenient_host(host))
-        for root in roots:
-            self.add_url(root)
         self.t0 = time.time()
         self.t1 = None
 
     def close(self):
         """Close resources."""
         self.session.close()
-
-    def host_okay(self, host):
-        """Check if a host should be crawled.
-
-        A literal match (after lowercasing) is always good.  For hosts
-        that don't look like IP addresses, some approximate matches
-        are okay depending on the strict flag.
-        """
-        host = host.lower()
-        if host in self.root_domains:
-            return True
-        if re.match(r'\A[\d\.]*\Z', host):
-            return False
-        if self.strict:
-            return self._host_okay_strictish(host)
-        else:
-            return self._host_okay_lenient(host)
-
-    def _host_okay_strictish(self, host):
-        """Check if a host should be crawled, strict-ish version.
-
-        This checks for equality modulo an initial 'www.' component.
-        """
-        host = host[4:] if host.startswith('www.') else 'www.' + host
-        return host in self.root_domains
-
-    def _host_okay_lenient(self, host):
-        """Check if a host should be crawled, lenient version.
-
-        This compares the last two components of the host.
-        """
-        return lenient_host(host) in self.root_domains
 
     def record_statistic(self, fetch_statistic):
         """Record the FetchStatistic for completed / failed URL."""
