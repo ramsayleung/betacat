@@ -2,7 +2,6 @@
 # # -*- coding: utf-8 -*-
 # author:Samray <samrayleung@gmail.com>
 import argparse
-import sys
 
 
 def difference(links_set, seen_bloomfilter):
@@ -57,4 +56,3 @@ def fix_url(url):
     if '://' not in url:
         url = 'http://' + url
     return url
-
