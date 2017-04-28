@@ -1,15 +1,13 @@
 """A simple web crawler -- class implementing crawling logic."""
 
 import asyncio
-import cgi
 import logging
-import re
 import time
 import urllib.parse
 from asyncio import Queue
-from collections import namedtuple
 
 import aiohttp  # Install with "pip install aiohttp".
+
 import utils
 from configuration import FetchStatistic
 from fetcher import Fetcher
@@ -75,7 +73,7 @@ class Crawler:
                 if next_url in self.seen_urls:
                     return
                 if max_redirect > 0:
-                    LOGGER.info('redirect to %r from %r', next_url, url)
+                    LOGGER.debug('redirect to %r from %r', next_url, url)
                     self.add_url(next_url, max_redirect - 1)
                 else:
                     LOGGER.error('redirect limit reached for %r from %r',
@@ -95,8 +93,8 @@ class Crawler:
             while True:
                 url, max_redirect = await self.q.get()
                 assert url in self.seen_urls
-                LOGGER.info("url:%s", url)
-                LOGGER.info("max_redirect:%s", max_redirect)
+                LOGGER.debug("url:%s", url)
+                LOGGER.debug("max_redirect:%s", max_redirect)
                 response, url, max_redirect, FetchStat = await self.fetcher.fetch(url, max_redirect)
                 if FetchStat:
                     self.record_statistic(FetchStat)
