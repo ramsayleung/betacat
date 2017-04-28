@@ -2,6 +2,9 @@
 # # -*- coding: utf-8 -*-
 # author:Samray <samrayleung@gmail.com>
 import argparse
+import random
+
+from configuration import USERAGENT_ALL, USERAGENT_PC, USERAGENT_PHONE
 
 
 def difference(links_set, seen_bloomfilter):
@@ -56,3 +59,13 @@ def fix_url(url):
     if '://' not in url:
         url = 'http://' + url
     return url
+
+
+def get_useragent(useragent_type='all'):
+    """
+    if not specified, get a random useragent.
+    """
+    useragent_type = useragent_type.lower()
+    return random.choice(USERAGENT_ALL if useragent_type == 'all' else
+                         (USERAGENT_PC if useragent_type == 'pc'
+                          else USERAGENT_PHONE))
