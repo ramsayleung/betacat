@@ -10,7 +10,6 @@ from asyncio import Queue
 from collections import namedtuple
 
 import aiohttp  # Install with "pip install aiohttp".
-
 import utils
 from pybloomfilter import BloomFilter
 
@@ -273,7 +272,7 @@ class Crawler:
         workers = [asyncio.Task(self.work(), loop=self.loop)
                    for _ in range(self.max_tasks)]
         self.t0 = time.time()
-        yield self.q.join()
+        await self.q.join()
         self.t1 = time.time()
         for w in workers:
             w.cancel()
