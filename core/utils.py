@@ -2,7 +2,10 @@
 # # -*- coding: utf-8 -*-
 # author:Samray <samrayleung@gmail.com>
 import argparse
+import os
 import random
+
+import yaml
 
 from configuration import USERAGENT_ALL, USERAGENT_PC, USERAGENT_PHONE
 
@@ -69,3 +72,14 @@ def get_useragent(useragent_type='all'):
     return random.choice(USERAGENT_ALL if useragent_type == 'all' else
                          (USERAGENT_PC if useragent_type == 'pc'
                           else USERAGENT_PHONE))
+
+
+def get_mongodb_config():
+    path = 'application.yaml'
+    if os.path.exists(path):
+        with open(path, 'rt') as f:
+            application_configratio = yaml.safe_load(f.read())
+        return application_configratio.get('mongodb')
+    else:
+        mongodb = {'host': 'localhost', 'port': 27017}
+        return mongodb
