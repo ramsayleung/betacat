@@ -6,6 +6,7 @@ import asyncio
 import logging
 
 import aiohttp
+
 from configuration import FetchStatistic
 
 LOGGER = logging.getLogger(__name__)
@@ -27,7 +28,7 @@ class Fetcher():
                     url, allow_redirects=False)
 
                 if tries > 1:
-                    LOGGER.info('try %r for %r success', tries, url)
+                    LOGGER.debug('try %r for %r success', tries, url)
 
                 return response, url, max_redirect, None
                 break

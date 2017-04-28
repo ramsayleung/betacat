@@ -69,13 +69,13 @@ class Parser():
                 urls = set(re.findall(r'''(?i)href=["']([^\s"'<>]+)''',
                                       text))
                 if urls:
-                    LOGGER.info('got %r distinct urls from %r',
-                                len(urls), response.url)
+                    LOGGER.debug('got %r distinct urls from %r',
+                                 len(urls), response.url)
                 for url in urls:
-                    LOGGER.info("response.url:%s,type:%s",
-                                response.url, type(response.url))
-                    LOGGER.info("parse_links url:%s,type:%s",
-                                url, type(url))
+                    LOGGER.debug("response.url:%s,type:%s",
+                                 response.url, type(response.url))
+                    LOGGER.debug("parse_links url:%s,type:%s",
+                                 url, type(url))
                     normalized = urllib.parse.urljoin(str(response.url), url)
                     defragmented, frag = urllib.parse.urldefrag(normalized)
                     if self.url_allowed(defragmented):
