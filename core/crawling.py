@@ -11,6 +11,7 @@ from collections import namedtuple
 
 import aiohttp  # Install with "pip install aiohttp".
 import utils
+from configuration import FetchStatistic
 from fetcher import Fetcher
 from parser import Parser
 from pybloomfilter import BloomFilter
@@ -18,25 +19,8 @@ from pybloomfilter import BloomFilter
 LOGGER = logging.getLogger(__name__)
 
 
-def lenient_host(host):
-    parts = host.split('.')[-2:]
-    return ''.join(parts)
-
-
 def is_redirect(response):
     return response.status in (300, 301, 302, 303, 307)
-
-
-FetchStatistic = namedtuple('FetchStatistic',
-                            ['url',
-                             'next_url',
-                             'status',
-                             'exception',
-                             'size',
-                             'content_type',
-                             'encoding',
-                             'num_urls',
-                             'num_new_urls'])
 
 
 class Crawler:
@@ -51,11 +35,7 @@ class Crawler:
                  max_redirect=10, max_tries=4,  # Per-url limits.
                  max_tasks=10, *, loop=None):
         self.loop = loop or asyncio.get_event_loop()
-        self.roots = roots
-        self.exclude = exclude
-        self.strict = strict
         self.max_redirect = max_redirect
-        self.max_tries = max_tries
         self.max_tasks = max_tasks
         self.q = Queue(loop=self.loop)
         self.seen_urls = BloomFilter(10000000, 0.01)
@@ -65,13 +45,13 @@ class Crawler:
             self.add_url(root)
         self.t0 = time.time()
         self.parser = Parser(
-            roots=self.roots, exclude=self.exclude, strict=self.strict)
-        self.fetcher = Fetcher(loop=self.loop, max_tries=self.max_tries)
+            roots=roots, exclude=exclude, strict=strict)
+        self.fetcher = Fetcher(loop=self.loop, max_tries=max_tries)
         self.t1 = None
 
     def close(self):
         """Close resources."""
-        self.session.close()
+        self.fetcher.session.close()
 
     def record_statistic(self, fetch_statistic):
         """Record the FetchStatistic for completed / failed URL."""
@@ -104,10 +84,7 @@ class Crawler:
                 stat, links = await self.parser.parse_links(response)
                 self.record_statistic(stat)
                 for link in utils.difference(links, self.seen_urls):
-
-                    # for link in links.difference(self.seen_urls):
                     self.q.put_nowait((link, self.max_redirect))
-                # self.seen_urls.update(links)
                 self.seen_urls.update(links)
         finally:
             await response.release()

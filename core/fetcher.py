@@ -4,22 +4,11 @@
 
 import asyncio
 import logging
-from collections import namedtuple
 
 import aiohttp
+from configuration import FetchStatistic
 
 LOGGER = logging.getLogger(__name__)
-
-FetchStatistic = namedtuple('FetchStatistic',
-                            ['url',
-                             'next_url',
-                             'status',
-                             'exception',
-                             'size',
-                             'content_type',
-                             'encoding',
-                             'num_urls',
-                             'num_new_urls'])
 
 
 class Fetcher():
