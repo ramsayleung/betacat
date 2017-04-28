@@ -11,6 +11,7 @@ from collections import namedtuple
 
 import aiohttp  # Install with "pip install aiohttp".
 import utils
+from fetcher import Fetcher
 from parser import Parser
 from pybloomfilter import BloomFilter
 
@@ -65,6 +66,7 @@ class Crawler:
         self.t0 = time.time()
         self.parser = Parser(
             roots=self.roots, exclude=self.exclude, strict=self.strict)
+        self.fetcher = Fetcher(loop=self.loop, max_tries=self.max_tries)
         self.t1 = None
 
     def close(self):
@@ -75,40 +77,7 @@ class Crawler:
         """Record the FetchStatistic for completed / failed URL."""
         self.done.append(fetch_statistic)
 
-    async def fetch(self, url, max_redirect):
-        """Fetch one URL."""
-        tries = 0
-        exception = None
-        while tries < self.max_tries:
-            try:
-                response = await self.session.get(
-                    url, allow_redirects=False)
-
-                if tries > 1:
-                    LOGGER.info('try %r for %r success', tries, url)
-
-                break
-            except aiohttp.ClientError as client_error:
-                LOGGER.info('try %r for %r raised %r',
-                            tries, url, client_error)
-                exception = client_error
-
-            tries += 1
-        else:
-            # We never broke out of the loop: all tries failed.
-            LOGGER.error('%r failed after %r tries',
-                         url, self.max_tries)
-            self.record_statistic(FetchStatistic(url=url,
-                                                 next_url=None,
-                                                 status=None,
-                                                 exception=exception,
-                                                 size=0,
-                                                 content_type=None,
-                                                 encoding=None,
-                                                 num_urls=0,
-                                                 num_new_urls=0))
-            return
-
+    async def handle_response(self, response, url, max_redirect):
         try:
             if is_redirect(response):
                 location = response.headers['location']
@@ -151,7 +120,11 @@ class Crawler:
                 assert url in self.seen_urls
                 LOGGER.info("url:%s", url)
                 LOGGER.info("max_redirect:%s", max_redirect)
-                await self.fetch(url, max_redirect)
+                response, url, max_redirect, FetchStat = await self.fetcher.fetch(url, max_redirect)
+                if FetchStat:
+                    self.record_statistic(FetchStat)
+                if response:
+                    await self.handle_response(response, url, max_redirect)
                 self.q.task_done()
         except asyncio.CancelledError:
             pass
