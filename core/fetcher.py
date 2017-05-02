@@ -8,18 +8,15 @@ import logging
 import aiohttp
 
 from configuration import FetchStatistic
-from utils import get_useragent
 
 LOGGER = logging.getLogger(__name__)
 
 
 class Fetcher():
-    def __init__(self, loop, max_tries=4, http_parameters=None):
-        self.loop = loop or asyncio.get_event_loop()
+    def __init__(self, session, max_tries=4, http_parameters=None):
         self.params = http_parameters
         self.max_tries = max_tries
-        self.session = aiohttp.ClientSession(
-            loop=self.loop, headers={"User-Agent": get_useragent()})
+        self.session = session
 
     async def fetch(self, url, max_redirect):
         """Fetch one URL."""

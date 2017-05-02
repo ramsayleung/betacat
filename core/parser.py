@@ -7,6 +7,8 @@ import re
 import urllib.parse
 from collections import namedtuple
 
+from lxml import html
+
 LOGGER = logging.getLogger(__name__)
 
 
@@ -64,10 +66,15 @@ class Parser():
             encoding = pdict.get('charset', 'utf-8')
             if content_type in ('text/html', 'application/xml'):
                 text = await response.text()
-
-                # Replace href with (?:href|src) to follow image links.
-                urls = set(re.findall(r'''(?i)href=["']([^\s"'<>]+)''',
-                                      text))
+                result = html.fromstring(text)
+                urls = await result.xpath("id('normal_user_container')/li/div/div[1]/a[2]/@href")
+                if len(urls) != 0:
+                    links = set(urls)
+                else:
+                    await self.parse_profile_detail(response)
+                    # Replace href with (?:href|src) to follow image links.
+                # urls = set(re.findall(r'''(?i)href=["']([^\s"'<>]+)''',
+                #                       text))
                 if urls:
                     LOGGER.debug('got %r distinct urls from %r',
                                  len(urls), response.url)
@@ -76,10 +83,10 @@ class Parser():
                                  response.url, type(response.url))
                     LOGGER.debug("parse_links url:%s,type:%s",
                                  url, type(url))
-                    normalized = urllib.parse.urljoin(str(response.url), url)
-                    defragmented, frag = urllib.parse.urldefrag(normalized)
-                    if self.url_allowed(defragmented):
-                        links.add(defragmented)
+                    # normalized = urllib.parse.urljoin(str(response.url), url)
+                    # defragmented, frag = urllib.parse.urldefrag(normalized)
+                    # if self.url_allowed(defragmented):
+                    #     links.add(defragmented)
 
         stat = FetchStatistic(
             url=response.url,
@@ -139,3 +146,11 @@ class Parser():
         This compares the last two components of the host.
         """
         return lenient_host(host) in self.root_domains
+
+    async def parge_profile_detail(self, response):
+        text = await response.text()
+        result = html.fromstring(text)
+
+        # id('normal_user_container')/li/div/div[1]/a[2]/@href
+        # //div[@class="bg_white mt15"]
+        # id('smallImg')/div/ul/li/a/img

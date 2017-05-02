@@ -28,9 +28,9 @@ def start():
 
     parser = argparse.ArgumentParser(parents=[utils.get_parser()])
     args = parser.parse_args()
-    if not args.roots:
-        print('Use --help for command line help')
-        return
+    # if not args.roots:
+    #     print('Use --help for command line help')
+    #     return
 
     # setup log
     logs.setup_logging()
@@ -45,7 +45,16 @@ def start():
     else:
         loop = asyncio.get_event_loop()
 
-    roots = {utils.fix_url(root) for root in args.roots}
+    roots = []
+    female_url = 'http://search.jiayuan.com/v2/index.php?key=&sex=f&stc=&sn=default&sv={}&p=1&pt=60843&ft=off&f=select&mt=d'
+    female_url_page_total = 60843
+    male_url = 'http://search.jiayuan.com/v2/index.php?key=&sex=m&stc=&sn=default&sv=1&p={}&pt=84769&ft=off&f=select&mt=d'
+    male_url_page_total = 84763
+    for i in range(1, female_url_page_total + 1):
+        roots.append(female_url.format(i))
+    for i in range(1, male_url_page_total + 1):
+        roots.append(male_url.format(i))
+    # roots = {utils.fix_url(root) for root in args.roots}
 
     crawler = crawling.Crawler(roots,
                                exclude=args.exclude,

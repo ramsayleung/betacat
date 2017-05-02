@@ -1,9 +1,11 @@
 """A simple web crawler -- class implementing crawling logic."""
 
 import asyncio
+import http.cookiejar
 import logging
 import time
 import urllib.parse
+import urllib.request
 from asyncio import Queue
 
 import aiohttp  # Install with "pip install aiohttp".
@@ -13,6 +15,7 @@ from configuration import FetchStatistic
 from fetcher import Fetcher
 from parser import Parser
 from pybloomfilter import BloomFilter
+from utils import get_useragent
 
 LOGGER = logging.getLogger(__name__)
 
@@ -38,18 +41,20 @@ class Crawler:
         self.q = Queue(loop=self.loop)
         self.seen_urls = BloomFilter(10000000, 0.01)
         self.done = []
-        self.session = aiohttp.ClientSession(loop=self.loop)
+        # self.session = self.cookie_sharing_session()
+        self.session = aiohttp.ClientSession(
+            loop=self.loop, cookie_jar=self.get_cookie())
         for root in roots:
             self.add_url(root)
         self.t0 = time.time()
         self.parser = Parser(
             roots=roots, exclude=exclude, strict=strict)
-        self.fetcher = Fetcher(loop=self.loop, max_tries=max_tries)
+        self.fetcher = Fetcher(session=self.session, max_tries=max_tries)
         self.t1 = None
 
     def close(self):
         """Close resources."""
-        self.fetcher.session.close()
+        self.session.close()
 
     def record_statistic(self, fetch_statistic):
         """Record the FetchStatistic for completed / failed URL."""
@@ -121,3 +126,15 @@ class Crawler:
         self.t1 = time.time()
         for w in workers:
             w.cancel()
+
+    def get_cookie(self):
+        session = aiohttp.ClientSession()
+        data = {'name': '15577262746', 'password': '6uQs3z328rZFjdy4'}
+        url = "http://www.jiayuan.com/login/dologin.php"
+        session.post(url, data=data, allow_redirects=True)
+        # handle redirect window.href ""
+        # session.get('http://www.jiayuan.com/usercp?from=login')
+        return session.cookie_jar
+
+    # id('normal_user_container')/li/div/div[1]/a[2]/@href
+    # //div[@class="bg_white mt15"]
