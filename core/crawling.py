@@ -15,7 +15,7 @@ from configuration import FetchStatistic
 from fetcher import Fetcher
 from parser import Parser
 from pybloomfilter import BloomFilter
-from utils import get_useragent
+from utils import get_jiayuan_account, get_useragent
 
 LOGGER = logging.getLogger(__name__)
 
@@ -44,8 +44,8 @@ class Crawler:
         # self.session = self.cookie_sharing_session()
         self.session = aiohttp.ClientSession(
             loop=self.loop, cookie_jar=self.get_cookie())
-        for root in roots:
-            self.add_url(root)
+        for root, data in roots:
+            self.add_url(root, data)
         self.t0 = time.time()
         self.parser = Parser(
             roots=roots, exclude=exclude, strict=strict)
@@ -65,6 +65,7 @@ class Crawler:
             if is_redirect(response):
                 location = response.headers['location']
                 next_url = urllib.parse.urljoin(url, location)
+                data = None
                 self.record_statistic(FetchStatistic(url=url,
                                                      next_url=next_url,
                                                      status=response.status,
@@ -79,7 +80,7 @@ class Crawler:
                     return
                 if max_redirect > 0:
                     LOGGER.debug('redirect to %r from %r', next_url, url)
-                    self.add_url(next_url, max_redirect - 1)
+                    self.add_url(next_url, data, max_redirect - 1)
                 else:
                     LOGGER.error('redirect limit reached for %r from %r',
                                  next_url, url)
@@ -87,7 +88,7 @@ class Crawler:
                 stat, links = await self.parser.parse_links(response)
                 self.record_statistic(stat)
                 for link in utils.difference(links, self.seen_urls):
-                    self.q.put_nowait((link, self.max_redirect))
+                    self.q.put_nowait((link, data, self.max_redirect))
                 self.seen_urls.update(links)
         finally:
             await response.release()
@@ -109,13 +110,15 @@ class Crawler:
         except asyncio.CancelledError:
             pass
 
-    def add_url(self, url, max_redirect=None):
+    def add_url(self, url, data, max_redirect=None):
         """Add a URL to the queue if not seen before."""
         if max_redirect is None:
             max_redirect = self.max_redirect
-        LOGGER.debug('adding %r %r', url, max_redirect)
+        if data is None:
+            data = {}
+        LOGGER.debug('adding %r %r %r', url, data, max_redirect)
         self.seen_urls.add(url)
-        self.q.put_nowait((url, max_redirect))
+        self.q.put_nowait((url, data, max_redirect))
 
     async def crawl(self):
         """Run the crawler until all finished."""
@@ -129,7 +132,7 @@ class Crawler:
 
     def get_cookie(self):
         session = aiohttp.ClientSession()
-        data = {'name': '15577262746', 'password': '6uQs3z328rZFjdy4'}
+        data = get_jiayuan_account()
         url = "http://www.jiayuan.com/login/dologin.php"
         session.post(url, data=data, allow_redirects=True)
         # handle redirect window.href ""

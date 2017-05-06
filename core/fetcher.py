@@ -13,23 +13,25 @@ LOGGER = logging.getLogger(__name__)
 
 
 class Fetcher():
-    def __init__(self, session, max_tries=4, http_parameters=None):
-        self.params = http_parameters
+    def __init__(self, session, max_tries=4):
         self.max_tries = max_tries
         self.session = session
 
-    async def fetch(self, url, max_redirect):
+    async def fetch(self, url, max_redirect, params, method='get'):
         """Fetch one URL."""
         tries = 0
         exception = None
         while tries < self.max_tries:
             try:
-                if self.params:
-                    response = await self.session.get(
-                        url, allow_redirects=False, params=self.params)
+                if method == 'get':
+                    if params:
+                        response = await self.session.get(
+                            url, allow_redirects=False, params=self.params)
+                    else:
+                        response = await self.session.get(
+                            url, allow_redirects=False)
                 else:
-                    response = await self.session.get(
-                        url, allow_redirects=False)
+                    response = await self.session.post(url, data=params)
 
                 if tries > 1:
                     LOGGER.debug('try %r for %r success', tries, url)

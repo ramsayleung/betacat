@@ -2,10 +2,12 @@
 # # -*- coding: utf-8 -*-
 # author:Samray <samrayleung@gmail.com>
 import cgi
+import json
 import logging
 import re
 import urllib.parse
 from collections import namedtuple
+from urllib.parse import urljoin
 
 from lxml import html
 
@@ -55,7 +57,7 @@ class Parser():
         content_type = None
         encoding = None
         body = await response.read()
-
+        jiayuan_search_url = 'http://search.jiayuan.com'
         if response.status == 200:
             content_type = response.headers.get('content-type')
             pdict = {}
@@ -66,8 +68,10 @@ class Parser():
             encoding = pdict.get('charset', 'utf-8')
             if content_type in ('text/html', 'application/xml'):
                 text = await response.text()
-                result = html.fromstring(text)
-                urls = await result.xpath("id('normal_user_container')/li/div/div[1]/a[2]/@href")
+                if jiayuan_search_url in response.url:
+                    text.replace('##jiayser##', '')
+                    text.replace(r'##jiayser##\\', '')
+                    urls = await self.parse_search_result(text)
                 if len(urls) != 0:
                     links = set(urls)
                 else:
@@ -154,3 +158,14 @@ class Parser():
         # id('normal_user_container')/li/div/div[1]/a[2]/@href
         # //div[@class="bg_white mt15"]
         # id('smallImg')/div/ul/li/a/img
+    async def parse_search_result(self, json_response):
+        user_info = []
+        user_id = []
+        user_profile_url = []
+        if json_response:
+            result = await json.loads(json_response)
+            user_info = result.get('userInfo')
+            user_id = [info.get("realUid") for info in user_info]
+            user_profile_url = [urljoin('http://www.jiayuan.com', id)
+                                for id in user_id]  #
+        return user_profile_url

@@ -74,12 +74,33 @@ def get_useragent(useragent_type='all'):
                           else USERAGENT_PHONE))
 
 
-def get_mongodb_config():
+def load_yaml():
     path = 'application.yaml'
     if os.path.exists(path):
         with open(path, 'rt') as f:
-            application_configratio = yaml.safe_load(f.read())
-        return application_configratio.get('mongodb')
-    else:
-        mongodb = {'host': 'localhost', 'port': 27017}
-        return mongodb
+            application_configuration = yaml.safe_load(f.read())
+        return application_configuration
+
+
+def get_mongodb_config():
+    application_configuration = load_yaml()
+    if application_configuration:
+        return application_configuration.get('mongodb')
+
+
+def get_jiayuan_account():
+    application_configuration = load_yaml()
+    if application_configuration:
+        account = {}
+        if not application_configuration.get('account'):
+            account['name'] = os.getenv("JIAYUAN_NAME")
+            account['password'] = os.getenv('JIAYUAN_PASSWORD')
+        else:
+            account = application_configuration.get('account')
+        return account
+
+
+def get_method_with_url():
+    application_configuration = load_yaml()
+    if application_configuration:
+        return application_configuration.get('method_with_url')
